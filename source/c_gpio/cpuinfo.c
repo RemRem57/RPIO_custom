@@ -35,7 +35,7 @@
 // revision_hex will be four characters revision id (eg. '0004'),
 // the over-voltage header, if present, is removed (since it is
 // not consistently present on all overclocked boards).
-int 
+int
 get_cpuinfo_revision(char *revision_hex)
 {
     FILE *fp;
@@ -47,11 +47,13 @@ get_cpuinfo_revision(char *revision_hex)
         return -1;
 
     while(!feof(fp)) {
-        fgets(buffer, sizeof(buffer) , fp);
-        sscanf(buffer, "Hardware	: %s", hardware);
-        if (strcmp(hardware, "BCM2708") == 0)
+        fgets(buffer, sizeof(buffer), fp);
+        sscanf(buffer, "Hardware\t: %s", hardware);
+        if (strcmp(hardware, "BCM2708") == 0 ||
+            strcmp(hardware, "BCM2709") == 0 ||
+            strcmp(hardware, "BCM2711") == 0)  // BCM2711 is for Raspberry Pi 4
             rpi_found = 1;
-        sscanf(buffer, "Revision	: %s", revision_hex);
+        sscanf(buffer, "Revision\t: %s", revision_hex);
     }
     fclose(fp);
 
@@ -63,20 +65,23 @@ get_cpuinfo_revision(char *revision_hex)
     // If over-voltage is present, remove it
     char* pos = strstr(revision_hex, "1000");
     if (pos && pos - revision_hex == 0 && strlen(revision_hex) > 5) {
-        strcpy(revision_hex, revision_hex+(strlen(revision_hex) - 4));
+        strcpy(revision_hex, revision_hex + (strlen(revision_hex) - 4));
     }
 
     // Returns revision
-    if ((strcmp(revision_hex, "0002") == 0) ||
-        (strcmp(revision_hex, "0003") == 0)) {
+    if (strcmp(revision_hex, "0002") == 0 || strcmp(revision_hex, "0003") == 0) {
         return 1;
-    } else if ((strcmp(revision_hex, "0010") == 0)) {
+    } else if (strcmp(revision_hex, "0010") == 0) {
         // We'll call Model B+ (0010) rev3
         return 3;
+    } else if (strcmp(revision_hex, "c03114") == 0) {
+        // Raspberry Pi 4
+        return 4;
     } else {
-        // assume rev 2 (0004 0005 0006 ...)
+        // assume rev 2 (0004 0005 0006 ...) for other models
         return 2;
     }
 
     return -1;
 }
+
